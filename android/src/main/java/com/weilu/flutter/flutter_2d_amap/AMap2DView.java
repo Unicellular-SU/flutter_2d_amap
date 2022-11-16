@@ -238,7 +238,7 @@ public class AMap2DView implements PlatformView, MethodChannel.MethodCallHandler
 
     private void drawMarkers(LatLng latLng, BitmapDescriptor bitmapDescriptor) {
 //        aMap.animateCamera(CameraUpdateFactory.changeLatLng(new LatLng(latLng.latitude, latLng.longitude)));
-        aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,16));
+        aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,18));
         if (mMarker == null) {
             mMarker = aMap.addMarker(new MarkerOptions().position(latLng).icon(bitmapDescriptor).draggable(true));
         } else {
