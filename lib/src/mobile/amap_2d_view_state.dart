@@ -1,5 +1,3 @@
-
-
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -8,13 +6,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_2d_amap/flutter_2d_amap.dart';
 import 'package:flutter_2d_amap/src/mobile/amap_2d_controller.dart';
 
-
 class AMap2DViewState extends State<AMap2DView> {
-
-  final Completer<AMap2DMobileController> _controller = Completer<AMap2DMobileController>();
+  final Completer<AMap2DMobileController> _controller =
+      Completer<AMap2DMobileController>();
 
   void _onPlatformViewCreated(int id) {
-    final AMap2DMobileController controller = AMap2DMobileController(id, widget);
+    final AMap2DMobileController controller =
+        AMap2DMobileController(id, widget);
     _controller.complete(controller);
     if (widget.onAMap2DViewCreated != null) {
       widget.onAMap2DViewCreated!(controller);
@@ -38,25 +36,36 @@ class AMap2DViewState extends State<AMap2DView> {
         creationParamsCodec: const StandardMessageCodec(),
       );
     }
-    return Text('$defaultTargetPlatform is not yet supported by the flutter_2d_amap plugin');
+    return Text(
+        '$defaultTargetPlatform is not yet supported by the flutter_2d_amap plugin');
   }
 }
 
 /// 需要更多的初始化配置，可以在此处添加
 class _CreationParams {
-  _CreationParams({this.isPoiSearch = true});
+  _CreationParams({
+    this.isPoiSearch = true,
+    this.latitude = '39.90960456049752',
+    this.longitude = '116.3972282409668',
+  });
 
   static _CreationParams fromWidget(AMap2DView widget) {
     return _CreationParams(
       isPoiSearch: widget.isPoiSearch,
+      latitude: widget.latitude,
+      longitude: widget.longitude,
     );
   }
 
   final bool isPoiSearch;
+  final String latitude;
+  final String longitude;
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'isPoiSearch': isPoiSearch,
+      'lat': latitude,
+      'lon': longitude,
     };
   }
 }

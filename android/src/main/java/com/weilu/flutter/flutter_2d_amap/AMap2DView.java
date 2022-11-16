@@ -18,6 +18,7 @@ import com.amap.api.maps2d.AMap;
 import com.amap.api.maps2d.CameraUpdateFactory;
 import com.amap.api.maps2d.LocationSource;
 import com.amap.api.maps2d.MapView;
+import com.amap.api.maps2d.UiSettings;
 import com.amap.api.maps2d.model.BitmapDescriptor;
 import com.amap.api.maps2d.model.BitmapDescriptorFactory;
 import com.amap.api.maps2d.model.LatLng;
@@ -45,9 +46,9 @@ import io.flutter.plugin.platform.PlatformView;
  */
 public class AMap2DView implements PlatformView, MethodChannel.MethodCallHandler, LocationSource, AMapLocationListener,
         AMap.OnMapClickListener, PoiSearch.OnPoiSearchListener {
-    
-    private static  final String SEARCH_CONTENT = "010000|010100|020000|030000|040000|050000|050100|060000|060100|060200|060300|060400|070000|080000|080100|080300|080500|080600|090000|090100|090200|090300|100000|100100|110000|110100|120000|120200|120300|130000|140000|141200|150000|150100|150200|160000|160100|170000|170100|170200|180000|190000|200000";
-  
+
+    private static final String SEARCH_CONTENT = "010000|010100|020000|030000|040000|050000|050100|060000|060100|060200|060300|060400|070000|080000|080100|080300|080500|080600|090000|090100|090200|090300|100000|100100|110000|110100|120000|120200|120300|130000|140000|141200|150000|150100|150200|160000|160100|170000|170100|170200|180000|190000|200000";
+
     private MapView mAMap2DView;
     private AMap aMap;
     private PoiSearch.Query query;
@@ -60,7 +61,11 @@ public class AMap2DView implements PlatformView, MethodChannel.MethodCallHandler
     private final Context context;
     private String keyWord = "";
     private boolean isPoiSearch;
+    private String lat;
+    private String lon;
     private static final String IS_POI_SEARCH = "isPoiSearch";
+    private static final String LAT = "lat";
+    private static final String LON = "lon";
     private String city = "";
 
     AMap2DView(final Context context, BinaryMessenger messenger, int id, Map<String, Object> params, AMap2DDelegate delegate) {
@@ -71,14 +76,20 @@ public class AMap2DView implements PlatformView, MethodChannel.MethodCallHandler
         mAMap2DView.onResume();
         methodChannel = new MethodChannel(messenger, "plugins.weilu/flutter_2d_amap_" + id);
         methodChannel.setMethodCallHandler(this);
-
         if (params.containsKey(IS_POI_SEARCH)) {
             isPoiSearch = (boolean) params.get(IS_POI_SEARCH);
         }
+        if (params.containsKey(LAT)) {
+            lat = (String) params.get(LAT);
+        }
+        if (params.containsKey(LON)) {
+            lon = (String) params.get(LON);
+        }
+        move(toDouble(lat),toDouble(lon));
     }
-    
+
     void setAMap2DDelegate(AMap2DDelegate delegate) {
-        if (delegate != null){
+        if (delegate != null) {
             delegate.requestPermissions(new AMap2DDelegate.RequestPermission() {
                 @Override
                 public void onRequestPermissionSuccess() {
@@ -87,42 +98,37 @@ public class AMap2DView implements PlatformView, MethodChannel.MethodCallHandler
 
                 @Override
                 public void onRequestPermissionFailure() {
-                    Toast.makeText(context,"定位失败，请检查定位权限是否开启！", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "定位失败，请检查定位权限是否开启！", Toast.LENGTH_SHORT).show();
                 }
             });
         }
     }
-    
+
     private void createMap(Context context) {
         mAMap2DView = new MapView(context);
         mAMap2DView.onCreate(new Bundle());
         aMap = mAMap2DView.getMap();
     }
-    
+
     private void setUpMap() {
-        CameraUpdateFactory.zoomTo(32);
-        aMap.setOnMapClickListener(this);
         // 设置定位监听
         aMap.setLocationSource(this);
+        UiSettings settings = aMap.getUiSettings();
         // 设置默认定位按钮是否显示
-        aMap.getUiSettings().setMyLocationButtonEnabled(true);
-        MyLocationStyle myLocationStyle = new MyLocationStyle();
-        myLocationStyle.strokeWidth(1f);
-        myLocationStyle.strokeColor(Color.parseColor("#8052A3FF"));
-        myLocationStyle.radiusFillColor(Color.parseColor("#3052A3FF"));
-        myLocationStyle.showMyLocation(true);
-        myLocationStyle.myLocationIcon(BitmapDescriptorFactory.fromResource(R.drawable.yd));
-        myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATE);
-        aMap.setMyLocationStyle(myLocationStyle);
+        settings.setMyLocationButtonEnabled(false);
         // 设置为true表示显示定位层并可触发定位，false表示隐藏定位层并不可触发定位，默认是false
-        aMap.setMyLocationEnabled(true);
+        aMap.setMyLocationEnabled(false);
+        // 隐藏缩放按钮
+        settings.setZoomControlsEnabled(false);
+        // 禁用所有手势
+        settings.setAllGesturesEnabled(false);
     }
-    
+
     @Override
     public void onMethodCall(MethodCall methodCall, @NonNull MethodChannel.Result result) {
         String method = methodCall.method;
         Map<String, Object> request = (Map<String, Object>) methodCall.arguments;
-        switch(method) {
+        switch (method) {
             case "search":
                 keyWord = (String) request.get("keyWord");
                 city = (String) request.get("city");
@@ -137,7 +143,7 @@ public class AMap2DView implements PlatformView, MethodChannel.MethodCallHandler
                 }
                 break;
             default:
-                break;    
+                break;
         }
     }
 
@@ -149,7 +155,7 @@ public class AMap2DView implements PlatformView, MethodChannel.MethodCallHandler
         }
         return 0D;
     }
-    
+
     @Override
     public View getView() {
         return mAMap2DView;
@@ -171,7 +177,7 @@ public class AMap2DView implements PlatformView, MethodChannel.MethodCallHandler
                 aMap.moveCamera(CameraUpdateFactory.zoomTo(16));
                 search(aMapLocation.getLatitude(), aMapLocation.getLongitude());
             } else {
-                Toast.makeText(context,"定位失败，请检查GPS是否开启！", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "定位失败，请检查GPS是否开启！", Toast.LENGTH_SHORT).show();
             }
             if (mLocationClient != null) {
                 mLocationClient.stopLocation();
@@ -194,7 +200,7 @@ public class AMap2DView implements PlatformView, MethodChannel.MethodCallHandler
         } catch (AMapException e) {
             e.printStackTrace();
         }
-       
+
     }
 
     private void move(double lat, double lon) {
@@ -229,9 +235,10 @@ public class AMap2DView implements PlatformView, MethodChannel.MethodCallHandler
     }
 
     private Marker mMarker;
-    
+
     private void drawMarkers(LatLng latLng, BitmapDescriptor bitmapDescriptor) {
-        aMap.animateCamera(CameraUpdateFactory.changeLatLng(new LatLng(latLng.latitude, latLng.longitude)));
+//        aMap.animateCamera(CameraUpdateFactory.changeLatLng(new LatLng(latLng.latitude, latLng.longitude)));
+        aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,16));
         if (mMarker == null) {
             mMarker = aMap.addMarker(new MarkerOptions().position(latLng).icon(bitmapDescriptor).draggable(true));
         } else {
@@ -287,14 +294,30 @@ public class AMap2DView implements PlatformView, MethodChannel.MethodCallHandler
                     for (int i = 0; i < list.size(); i++) {
                         PoiItem item = list.get(i);
                         builder.append("{");
-                        builder.append("\"cityCode\": \"");builder.append(item.getCityCode());builder.append("\",");
-                        builder.append("\"cityName\": \"");builder.append(item.getCityName());builder.append("\",");
-                        builder.append("\"provinceName\": \"");builder.append(item.getProvinceName());builder.append("\",");
-                        builder.append("\"title\": \"");builder.append(item.getTitle());builder.append("\",");
-                        builder.append("\"adName\": \"");builder.append(item.getAdName());builder.append("\",");
-                        builder.append("\"provinceCode\": \"");builder.append(item.getProvinceCode());builder.append("\",");
-                        builder.append("\"latitude\": \"");builder.append(item.getLatLonPoint().getLatitude());builder.append("\",");
-                        builder.append("\"longitude\": \"");builder.append(item.getLatLonPoint().getLongitude());builder.append("\"");
+                        builder.append("\"cityCode\": \"");
+                        builder.append(item.getCityCode());
+                        builder.append("\",");
+                        builder.append("\"cityName\": \"");
+                        builder.append(item.getCityName());
+                        builder.append("\",");
+                        builder.append("\"provinceName\": \"");
+                        builder.append(item.getProvinceName());
+                        builder.append("\",");
+                        builder.append("\"title\": \"");
+                        builder.append(item.getTitle());
+                        builder.append("\",");
+                        builder.append("\"adName\": \"");
+                        builder.append(item.getAdName());
+                        builder.append("\",");
+                        builder.append("\"provinceCode\": \"");
+                        builder.append(item.getProvinceCode());
+                        builder.append("\",");
+                        builder.append("\"latitude\": \"");
+                        builder.append(item.getLatLonPoint().getLatitude());
+                        builder.append("\",");
+                        builder.append("\"longitude\": \"");
+                        builder.append(item.getLatLonPoint().getLongitude());
+                        builder.append("\"");
                         builder.append("},");
                         if (i == list.size() - 1) {
                             builder.deleteCharAt(builder.length() - 1);
